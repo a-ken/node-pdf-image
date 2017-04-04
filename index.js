@@ -15,6 +15,7 @@ function PDFImage(pdfFilePath, options) {
 
   this.setConvertOptions(options.convertOptions);
   this.setConvertExtension(options.convertExtension);
+  this.useGS = options.ghostScript || false;
   this.useGM = options.graphicsMagick || false;
 
   this.outputDirectory = options.outputDirectory || path.dirname(pdfFilePath);
@@ -75,12 +76,21 @@ PDFImage.prototype = {
     var pdfFilePath = this.pdfFilePath;
     var outputImagePath = this.getOutputImagePathForPage(pageNumber);
     var convertOptionsString = this.constructConvertOptions();
-    return util.format(
-      "%s %s'%s[%d]' '%s'",
-      this.useGM ? "gm convert" : "convert",
-      convertOptionsString ? convertOptionsString + " " : "",
-      pdfFilePath, pageNumber, outputImagePath
-    );
+
+    if (this.useGS) {
+      return util.format(
+        "gs -q -dNOPAUSE -sDEVICE=png48 %s -dFirstPage=%d -dLastPage=%d -sOutputFile=%s %s -c quit",
+        convertOptionsString ? convertOptionsString + " " : "",
+        pageNumber, pageNumber, outputImagePath, pdfFilePath
+      );
+    } else {
+      return util.format(
+        "%s %s'%s[%d]' '%s'",
+        this.useGM ? "gm convert" : "convert",
+        convertOptionsString ? convertOptionsString + " " : "",
+        pdfFilePath, pageNumber, outputImagePath
+      );
+    }
   },
   constructConvertOptions: function () {
     return Object.keys(this.convertOptions).sort().map(function (optionName) {
